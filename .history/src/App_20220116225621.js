@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { Button, Container, Spinner } from 'react-bootstrap';
+import { Container, Spinner } from 'react-bootstrap';
 import Search from './components/Search';
 import MovieList from './components/MovieList';
 
 function App() {
-  const [searchvalue, setsearchvalue] = useState('');
+  const [searchvalue, setsearchvalue] = useState('fast');
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pageNumber, setpageNumber] = useState(1);
-  const [disableShowMore, setdisableShowMore] = useState(true);
+  const [initialLoad, setinitialLoad] = useState(true);
 
   function getFullMovieDetails (id) {
     return fetch(`http://www.omdbapi.com/?i=${id}&apikey=6c3a2d45`);
@@ -18,18 +17,18 @@ function App() {
 
   async function fetchSearchData (val) {
     setLoading(true);
-    let results = await fetch(`http://www.omdbapi.com/?s=${val}&apiKey=6c3a2d45&page=${pageNumber}`);
+    let results = await fetch(`http://www.omdbapi.com/?s=${val}&apiKey=6c3a2d45`);
     results = await results.json();
-    if(results.Response === "False") {
-      setLoading(false);
-      setdisableShowMore(true);
-    }
+    if(results.Response === "False") setLoading(false);
 
+    if(initialLoad && results.Response !== "False") {
+      results.Search = [...results.Search.splice(0,2)];
+      setinitialLoad(false);
+    };
     results && results.Search && Promise.all(results.Search.map((r) => getFullMovieDetails(r.imdbID)))
-      .then(async(res) => Promise.all(res.map(async(data) => await data.json())))
+      .then(async(res)=> Promise.all(res.map(async(data) => await data.json())))
       .then(data => {
-        const movieData = [...movies, ...data];
-        setMovies(movieData);
+        setMovies(data);
         setLoading(false);
       })
       .catch(err => {
@@ -42,21 +41,13 @@ function App() {
     if(searchvalue !== '') {
       fetchSearchData(searchvalue);
     }
-  }, [searchvalue, pageNumber]);
-
-  const showMoreClicked = () => {
-    setpageNumber(pageNumber + 1);
-  }
-
-  const setShowMore = () => {
-    setdisableShowMore(false);
-  }
+  }, [searchvalue]);
 
   return (
     <Container fluid>
       <h2>OMDB Database</h2>
-      <Search searchvalue={setsearchvalue} showMore={setShowMore} />
-      <div className='my-3'>
+      <Search searchvalue={setsearchvalue} />
+      <div className='mt-3'>
         <h3>Movie List</h3>
         {
           !loading ? (movies.length > 0  ? <MovieList movieData={movies}/> : <p>No Data Available</p>) :
@@ -65,7 +56,6 @@ function App() {
           </Spinner>
         }
       </div>
-      <Button onClick={showMoreClicked} disabled={disableShowMore}>Show More</Button>
     </Container>
   );
 }

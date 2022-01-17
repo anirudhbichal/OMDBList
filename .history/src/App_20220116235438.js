@@ -6,11 +6,12 @@ import Search from './components/Search';
 import MovieList from './components/MovieList';
 
 function App() {
-  const [searchvalue, setsearchvalue] = useState('');
+  const [searchvalue, setsearchvalue] = useState('fast');
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoad, setinitialLoad] = useState(true);
   const [pageNumber, setpageNumber] = useState(1);
-  const [disableShowMore, setdisableShowMore] = useState(true);
+  const [disableShowMore, setdisableShowMore] = useState(false);
 
   function getFullMovieDetails (id) {
     return fetch(`http://www.omdbapi.com/?i=${id}&apikey=6c3a2d45`);
@@ -22,6 +23,12 @@ function App() {
     results = await results.json();
     if(results.Response === "False") {
       setLoading(false);
+      setdisableShowMore(true);
+    }
+
+    if(initialLoad && results.Response !== "False") {
+      results.Search = [...results.Search.splice(0,2)];
+      setinitialLoad(false);
       setdisableShowMore(true);
     }
 

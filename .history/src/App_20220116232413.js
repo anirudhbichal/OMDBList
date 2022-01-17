@@ -6,11 +6,12 @@ import Search from './components/Search';
 import MovieList from './components/MovieList';
 
 function App() {
-  const [searchvalue, setsearchvalue] = useState('');
+  const [searchvalue, setsearchvalue] = useState('fast');
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoad, setinitialLoad] = useState(true);
   const [pageNumber, setpageNumber] = useState(1);
-  const [disableShowMore, setdisableShowMore] = useState(true);
+  const [disableShowMore, setdisableShowMore] = useState(false);
 
   function getFullMovieDetails (id) {
     return fetch(`http://www.omdbapi.com/?i=${id}&apikey=6c3a2d45`);
@@ -25,10 +26,14 @@ function App() {
       setdisableShowMore(true);
     }
 
+    if(initialLoad && results.Response !== "False") {
+      results.Search = [...results.Search.splice(0,2)];
+      setinitialLoad(false);
+    };
     results && results.Search && Promise.all(results.Search.map((r) => getFullMovieDetails(r.imdbID)))
-      .then(async(res) => Promise.all(res.map(async(data) => await data.json())))
+      .then(async(res)=> Promise.all(res.map(async(data) => await data.json())))
       .then(data => {
-        const movieData = [...movies, ...data];
+        const movieData = [...movies, data];
         setMovies(movieData);
         setLoading(false);
       })
@@ -42,20 +47,16 @@ function App() {
     if(searchvalue !== '') {
       fetchSearchData(searchvalue);
     }
-  }, [searchvalue, pageNumber]);
+  }, [searchvalue]);
 
   const showMoreClicked = () => {
     setpageNumber(pageNumber + 1);
   }
 
-  const setShowMore = () => {
-    setdisableShowMore(false);
-  }
-
   return (
     <Container fluid>
       <h2>OMDB Database</h2>
-      <Search searchvalue={setsearchvalue} showMore={setShowMore} />
+      <Search searchvalue={setsearchvalue} />
       <div className='my-3'>
         <h3>Movie List</h3>
         {
